@@ -87,37 +87,24 @@ if file:
         if submit:
             map_train = {"No": 0, "currently in development": 1, "Yes": 2}
             map_prod = {'0-20 %': 1, '20-40%': 2, '40-60%': 3, '60-80%': 4, '80-100%': 5}
-
-            if group == "Employees":
-                response_dict = {
-                    'JDR_Job_Resources_Training': map_train[q1],
-                    'DOI_Ethics_Consideration': q2,
-                    'DOI_Ethics_Policies': map_train[q3],
-                    'TAM_Integration_Level': q4,
-                    'DOI_Observability': map_prod[q5],
-                    'TAM_Complexity': q6
-                }
-            else:
-                response_dict = {
-                    'JDR_AI_Training_Offered': map_train[q1],
-                    'JDR_AI_Training_Hours': q2,
-                    'TAM_AI_Integration_Level': q4,
-                    'DOI_AI_Innovation_Competitiveness': map_prod[q5],
-                    'DOI_AI_Ethical_Policies': map_train[q3],
-                    'JDR_AI_New_Jobs': q6
-                }
-
+        
+            response_dict = {
+                'JDR_Job_Resources_Training': map_train[q1],
+                'DOI_Ethics_Consideration': q2,
+                'DOI_Ethics_Policies': map_train[q3],
+                'TAM_Integration_Level': q4,
+                'DOI_Observability': map_prod[q5],
+                'TAM_Complexity': q6
+            }
+        
             df_temp = pd.DataFrame([response_dict])
+        
+            # Normalize using scaler fit on original data
             scaler_input = MinMaxScaler()
-            readiness = scaler_input.fit_transform(df_temp)
-            readiness_score = np.mean(readiness)
-
+            scaler_input.fit(df[readiness_vars])  # very important: fit on full dataset
+            readiness_scaled = scaler_input.transform(df_temp)
+        
+            readiness_score = np.mean(readiness_scaled)
+        
             st.success(f"Estimated AI Readiness Score: {readiness_score:.2f}")
 
-            # Compare with population
-            fig3, ax3 = plt.subplots()
-            sns.histplot(df['AI_Readiness'], bins=10, kde=True, color='lightblue', label='Population', ax=ax3)
-            ax3.axvline(readiness_score, color='red', linestyle='--', label='Your score')
-            ax3.legend()
-            ax3.set_title("Your Score vs Distribution")
-            st.pyplot(fig3)

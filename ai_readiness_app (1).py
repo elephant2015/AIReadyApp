@@ -87,7 +87,7 @@ if file:
 
         if submit:
             map_train = {"No": 0, "currently in development": 1, "Yes": 2}
-            map_prod = {'0-20 %': 1, '20-40%': 2, '40-60%': 3, '60-80%': 4, '80-100%': 5}
+            map_prod = {'0-20 %': 1, '0-20': 1, '20-40%': 2, '20-40': 2, '40-60%': 3, '40-60%': 3, '40-60': 3, '60-80%': 4, '60-80': 4,'80-100%': 5, '80-100': 5}
 
             response_dict = {
                 'JDR_Job_Resources_Training': map_train[q1],

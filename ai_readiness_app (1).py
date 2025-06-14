@@ -105,7 +105,16 @@ if file:
             readiness_scaled = scaler_input.transform(df_temp)  # transform pe input-ul userului
         
             readiness_score = np.mean(readiness_scaled)
-        
+                # Compare with population
+            fig3, ax3 = plt.subplots()
+            sns.histplot(df['AI_Readiness'], bins=10, kde=True, color='lightblue', label='Population', ax=ax3)
+            ax3.axvline(readiness_score, color='red', linestyle='--', linewidth=2, label='Your score')
+            ax3.legend()
+            ax3.set_title("Your Score vs Population Distribution")
+            ax3.set_xlabel("AI Readiness Score")
+            ax3.set_ylabel("Count")
+            st.pyplot(fig3)
+
             st.success(f"Estimated AI Readiness Score: {readiness_score:.2f}")
 
 

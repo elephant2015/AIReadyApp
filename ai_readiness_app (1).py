@@ -1,25 +1,29 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-from scipy.stats import kruskal
 
-st.set_page_config(layout="wide", page_title="AI Readiness App")
+st.set_page_config(layout="wide")
 
-st.title("🧠 AI Readiness Assessment and Insights")
+st.title("AI Readiness Evaluation App")
 
-uploaded_file = st.file_uploader("Upload your file", type=["csv"])
+st.sidebar.header("Upload your dataset")
+file = st.sidebar.file_uploader("Choose a file", type=["csv"])
 
-if uploaded_file is not None:
-    user_type = st.radio("Select respondent type:", ["Employees", "Employers"])
-    df = pd.read_csv(uploaded_file)
-    df.columns = df.columns.str.strip()
+if file:
+    df = pd.read_csv(file)
+    st.success("File uploaded successfully!")
+    st.subheader("Preview of Uploaded Data")
+    st.dataframe(df.head())
 
-    if user_type == "Employees":
+    st.sidebar.header("Select target group")
+    group = st.sidebar.selectbox("Target group:", ["Employees", "Employers"])
+
+    if group == "Employees":
         readiness_vars = [
             'JDR_Job_Resources_Training',
             'DOI_Ethics_Policies',
@@ -40,66 +44,71 @@ if uploaded_file is not None:
 
     missing_cols = [col for col in readiness_vars if col not in df.columns]
     if missing_cols:
-        st.error(f"Missing columns for readiness computation: {missing_cols}")
-        st.stop()
+        st.error(f"The following expected columns are missing from your data: {missing_cols}")
+    else:
+        df['AI_Readiness'] = df[readiness_vars].mean(axis=1)
 
-    df['AI_Readiness'] = df[readiness_vars].mean(axis=1)
+        st.subheader("📊 AI Readiness Distribution")
+        fig, ax = plt.subplots()
+        sns.histplot(df['AI_Readiness'], kde=True, color="skyblue", edgecolor="black", bins=10, ax=ax)
+        ax.set_xlabel("AI Readiness Score")
+        ax.set_ylabel("Frequency")
+        st.pyplot(fig)
 
-    st.subheader("📊 AI Readiness Score Distribution")
-    fig, ax = plt.subplots()
-    sns.histplot(df['AI_Readiness'], bins=10, kde=True, color='skyblue')
-    plt.xlabel("AI Readiness Score")
-    plt.ylabel("Frequency")
-    st.pyplot(fig)
+        st.subheader("📈 PCA Visualization and Clustering")
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(df[readiness_vars])
 
-    # Clustering
-    st.subheader("🔍 Clustering Based on AI Readiness and Automation Risk (if available)")
-    cluster_features = ['AI_Readiness']
-    if 'Automation_Risk' in df.columns:
-        cluster_features.append('Automation_Risk')
+        kmeans = KMeans(n_clusters=3, random_state=42)
+        clusters = kmeans.fit_predict(X_scaled)
+        df['Cluster'] = clusters
 
-    X = df[cluster_features].dropna()
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+        pca = PCA(n_components=2)
+        components = pca.fit_transform(X_scaled)
+        df['PC1'] = components[:, 0]
+        df['PC2'] = components[:, 1]
 
-    kmeans = KMeans(n_clusters=3, random_state=42)
-    df['Cluster'] = kmeans.fit_predict(X_scaled)
+        fig2, ax2 = plt.subplots()
+        sns.scatterplot(data=df, x='PC1', y='PC2', hue='Cluster', palette='Set2', s=100, edgecolor="black", alpha=0.8)
+        ax2.set_title("PCA Projection with Cluster Assignments")
+        st.pyplot(fig2)
 
-    # PCA Projection
-    pca = PCA(n_components=2)
-    components = pca.fit_transform(X_scaled)
-    df['PC1'] = components[:, 0]
-    df['PC2'] = components[:, 1]
+        st.subheader("🧠 Personalized Evaluation")
+        st.markdown("Answer a few questions to estimate your organization's AI Readiness score:")
 
-    fig, ax = plt.subplots()
-    sns.scatterplot(data=df, x='PC1', y='PC2', hue='Cluster', palette='Set2', s=100, edgecolor='black')
-    plt.title("PCA Projection with Cluster Assignments")
-    st.pyplot(fig)
+        with st.form("readiness_form"):
+            q1 = st.selectbox("Has your organization provided AI-related training?", ["Yes", "No", "currently in development"])
+            q2 = st.slider("To what extent has your organization considered ethical AI implications?", 1, 4, 2)
+            q3 = st.selectbox("Has your organization implemented ethical AI policies?", ["Yes", "No", "currently in development"])
+            q4 = st.slider("Rate the level of AI integration (1=Minimal, 10=Extensive)", 1, 10, 5)
+            q5 = st.selectbox("Productivity gain from AI", ['0-20 %', '20-40%', '40-60%', '60-80%', '80-100%'])
+            q6 = st.slider("Complexity of AI tools (1=Simple, 10=Complex)", 1, 10, 5)
+            submit = st.form_submit_button("Calculate Readiness Score")
 
-    # Boxplot
-    st.subheader("📦 AI Readiness by Cluster")
-    fig, ax = plt.subplots()
-    sns.boxplot(data=df, x='Cluster', y='AI_Readiness', palette='Set3')
-    plt.title("AI Readiness Distribution by Cluster")
-    st.pyplot(fig)
+        if submit:
+            map_train = {"No": 0, "currently in development": 1, "Yes": 2}
+            map_prod = {'0-20 %': 1, '20-40%': 2, '40-60%': 3, '60-80%': 4, '80-100%': 5}
 
-    # Kruskal-Wallis
-    st.subheader("📌 Kruskal-Wallis Test for AI Readiness Differences Across Clusters")
-    groups = [group["AI_Readiness"].values for _, group in df.groupby("Cluster")]
-    stat, p = kruskal(*groups)
-    st.write(f"Kruskal-Wallis H-statistic: {stat:.3f}, p-value: {p:.4f}")
+            response_dict = {
+                'JDR_Job_Resources_Training': map_train[q1],
+                'DOI_Ethics_Consideration': q2,
+                'DOI_Ethics_Policies': map_train[q3],
+                'TAM_Integration_Level': q4,
+                'DOI_Observability': map_prod[q5],
+                'TAM_Complexity': q6
+            }
 
-    # Heatmap for variable means
-    st.subheader("📈 Cluster Profile Heatmap")
-    cluster_means = df.groupby("Cluster")[readiness_vars + ['AI_Readiness']].mean().T
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(cluster_means, annot=True, cmap="YlGnBu", fmt=".2f")
-    st.pyplot(fig)
+            df_temp = pd.DataFrame([response_dict])
+            scaler_input = MinMaxScaler()
+            readiness = scaler_input.fit_transform(df_temp)
+            readiness_score = np.mean(readiness)
 
-    # Optional: Export HTML report
-    if st.button("Export Cluster Summary Table to CSV"):
-        cluster_means.to_csv("cluster_summary.csv")
-        st.success("Exported cluster_summary.csv")
+            st.success(f"Estimated AI Readiness Score: {readiness_score:.2f}")
 
-else:
-    st.info("Please upload a file to begin.")
+            # Compare with population
+            fig3, ax3 = plt.subplots()
+            sns.histplot(df['AI_Readiness'], bins=10, kde=True, color='lightblue', label='Population', ax=ax3)
+            ax3.axvline(readiness_score, color='red', linestyle='--', label='Your score')
+            ax3.legend()
+            ax3.set_title("Your Score vs Distribution")
+            st.pyplot(fig3)

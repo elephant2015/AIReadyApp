@@ -11,10 +11,10 @@ st.set_page_config(layout="wide")
 st.title("AI Readiness Evaluation App")
 
 st.sidebar.header("Upload your Excel dataset")
-file = st.sidebar.file_uploader("Choose a file", type=["xlsx"])
+file = st.sidebar.file_uploader("Choose a file", type=["csv"])
 
 if file:
-    df = pd.read_excel(file)
+    df = pd.read_csv(file)
     st.success("File uploaded successfully!")
     st.subheader("Preview of Uploaded Data")
     st.dataframe(df.head())

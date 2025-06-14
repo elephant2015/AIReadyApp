@@ -12,11 +12,11 @@ st.set_page_config(layout="wide", page_title="AI Readiness App")
 
 st.title("🧠 AI Readiness Assessment and Insights")
 
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
+uploaded_file = st.file_uploader("Upload your file", type=["csv"])
 
 if uploaded_file is not None:
     user_type = st.radio("Select respondent type:", ["Employees", "Employers"])
-    df = pd.read_excel(uploaded_file)
+    df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
 
     if user_type == "Employees":

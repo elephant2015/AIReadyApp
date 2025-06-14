@@ -97,14 +97,15 @@ if file:
                 'TAM_Complexity': q6
             }
         
-            df_temp = pd.DataFrame([response_dict])
+            # Creează df_temp cu exact aceeași ordine ca readiness_vars
+            df_temp = pd.DataFrame([[response_dict[var] for var in readiness_vars]], columns=readiness_vars)
         
-            # Normalize using scaler fit on original data
             scaler_input = MinMaxScaler()
-            scaler_input.fit(df[readiness_vars])  # very important: fit on full dataset
-            readiness_scaled = scaler_input.transform(df_temp)
+            scaler_input.fit(df[readiness_vars])  # fit pe datele originale
+            readiness_scaled = scaler_input.transform(df_temp)  # transform pe input-ul userului
         
             readiness_score = np.mean(readiness_scaled)
         
             st.success(f"Estimated AI Readiness Score: {readiness_score:.2f}")
+
 
